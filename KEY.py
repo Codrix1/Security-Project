@@ -14,7 +14,7 @@ class KEY:
         """
         if len(initial_key) != 32:  # 32 hex characters = 128 bits
             raise ValueError("Initial key must be a 128-bit hexadecimal string (32 characters).")
-        
+        self.initial_key = initial_key
         self.S_BOX = [
             [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
             [0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0],
@@ -47,7 +47,7 @@ class KEY:
         ]
         self.round_keys = []  # To store the 10 round keys
         self.key_schedule()
-
+        
 
     def hex_to_matrix(self, hex_string: str) -> list:
         """
@@ -65,7 +65,7 @@ class KEY:
         matrix = []
         for row in range(4):  # AES uses 4 rows in the key schedule
             matrix.append([hex_string[i:i+2] for i in range(row * 8, (row + 1) * 8, 2)])
-        return matrix
+        return [list(row) for row in zip(*matrix)]
 
 
     def generate_round_key(self, previous_key: list, round_constant: list) -> list:
