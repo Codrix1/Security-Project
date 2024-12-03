@@ -1,21 +1,14 @@
+import numpy as np
+
 class KEY:
-    """
-    This class is responsible for generating the round keys 
-    for AES encryption. It uses the initial key provided 
-    to derive keys for 10 rounds.
-    """
+
 
     def __init__(self, initial_key: str):
-        """
-        Initialize the KEY class with the initial key.
 
-        Args:
-            initial_key (str): A 128-bit key represented as a hexadecimal string.
-        """
         if len(initial_key) != 32:  # 32 hex characters = 128 bits
             raise ValueError("Initial key must be a 128-bit hexadecimal string (32 characters).")
         self.initial_key = initial_key
-        self.S_BOX = [
+        self.S_BOX = np.array([
             [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
             [0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0],
             [0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15],
@@ -32,8 +25,8 @@ class KEY:
             [0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e],
             [0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf],
             [0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
-        ]
-        self.RCON = [
+        ], dtype=np.uint8)
+        self.RCON = np.array([
             [0x01, 0x00, 0x00, 0x00],
             [0x02, 0x00, 0x00, 0x00],
             [0x04, 0x00, 0x00, 0x00],
@@ -44,157 +37,60 @@ class KEY:
             [0x80, 0x00, 0x00, 0x00],
             [0x1b, 0x00, 0x00, 0x00],
             [0x36, 0x00, 0x00, 0x00]
-        ]
+            # ... (remaining RCON values omitted for brevity)
+        ], dtype=np.uint8)
         self.round_keys = []  # To store the 10 round keys
         self.key_schedule()
-        
 
-    def hex_to_matrix(self, hex_string: str) -> list:
-        """
-        Convert a 128-bit hexadecimal string into a 4x4 matrix.
+    def hex_to_matrix(self, hex_string: str) -> np.ndarray:
 
-        Args:
-            hex_string (str): A 128-bit hexadecimal string.
+        key_bytes = [int(hex_string[i:i+2], 16) for i in range(0, len(hex_string), 2)]
+        return np.array(key_bytes, dtype=np.uint8).reshape(4, 4).T
 
-        Returns:
-            list: A 4x4 matrix representing the key.
-        """
-        if len(hex_string) != 32:
-            raise ValueError("Input must be a 128-bit hexadecimal string (32 characters).")
-        
-        matrix = []
-        for row in range(4):  # AES uses 4 rows in the key schedule
-            matrix.append([hex_string[i:i+2] for i in range(row * 8, (row + 1) * 8, 2)])
-        return [list(row) for row in zip(*matrix)]
+    def generate_round_key(self, previous_key: np.ndarray, round_constant: np.ndarray) -> np.ndarray:
 
+        # Step 1: Rotate the last column
+        last_column = previous_key[:, 3]
+        rotated_column = np.roll(last_column, -1)
 
-    def generate_round_key(self, previous_key: list, round_constant: list) -> list:
-        """
-        Generate a new round key from the previous key and round constant.
-
-        Args:
-            previous_key (list): A 4x4 matrix representing the previous key.
-            round_constant (list): A list of 4 bytes representing the round constant.
-
-        Returns:
-            list: A 4x4 matrix representing the new round key.
-        """
-        last_column = [previous_key[row][3] for row in range(4)]
-        rotated_column = last_column[1:] + last_column[:1]
-        
+        # Step 2: Substitute each byte in the rotated column using the S-Box
         substituted_column = []
         for byte in rotated_column:
-            row = int(byte[0], 16)
-            col = int(byte[1], 16)
-            # Retrieve the value from the S-Box
-            sbox_value = self.S_BOX[row][col]
+            # Convert the byte to a hex string
+            hex_string = f"{byte:02x}"
+            # Extract row and column from the hex string
+            row = int(hex_string[0], 16)
+            col = int(hex_string[1], 16)
+            # Use the S-Box for substitution
+            substituted_value = self.S_BOX[row, col]
+            substituted_column.append(substituted_value)
+        substituted_column = np.array(substituted_column, dtype=np.uint8)
 
-            # Convert the value to a hexadecimal string
-            hex_value = hex(sbox_value)[2:]  # Remove the '0x' prefix
+        # Step 3: Add the round constant and the first column of the previous key
+        first_column = substituted_column ^ round_constant ^ previous_key[:, 0]
 
-            # Ensure the hex value is two characters long (pad with '0' if necessary)
-            if len(hex_value) == 1:
-                hex_value = '0' + hex_value
+        # Step 4: Generate the rest of the columns
+        round_key = np.zeros_like(previous_key, dtype=np.uint8)
+        round_key[:, 0] = first_column
+        for col in range(1, 4):
+            round_key[:, col] = previous_key[:, col] ^ round_key[:, col - 1]
 
-            # Append the two-character hex string to the substituted_column list
-            substituted_column.append(hex_value)
-        
-        # Initialize an empty list for the first column
-        first_column = []
-
-        # Loop through the 4 rows
-        for i in range(4):
-            # Convert substituted_column[i] from hex to integer
-            substituted_value = int(substituted_column[i], 16)
-
-            # Convert round_constant[i] from hex to integer
-            round_constant_value = int(round_constant[i], 16)
-
-            # Convert previous_key[i][0] (first column) from hex to integer
-            previous_key_value = int(previous_key[i][0], 16)
-
-            # Perform XOR on the three values
-            xor_result = substituted_value ^ round_constant_value ^ previous_key_value
-
-            # Convert the XOR result back to hex and strip the '0x' prefix
-            hex_result = hex(xor_result)[2:]
-
-            # Ensure the hex string is two characters long
-            if len(hex_result) == 1:
-                hex_result = '0' + hex_result
-
-            # Append the result to the first_column list
-            first_column.append(hex_result)
-
-        
-        round_key = [[first_column[row]] for row in range(4)]
-        for col in range(1, 4):  # Loop through columns 1 to 3
-            for row in range(4):  # Loop through rows 0 to 3
-                # Convert the current cell in previous_key to an integer
-                prev_key_value = int(previous_key[row][col], 16)
-
-                # Convert the corresponding cell in the previous round_key column to an integer
-                round_key_value = int(round_key[row][col - 1], 16)
-
-                # Perform the XOR operation
-                xor_result = prev_key_value ^ round_key_value
-
-                # Convert the XOR result back to a hexadecimal string
-                hex_value = hex(xor_result)[2:]  # Remove the '0x' prefix
-
-                # Ensure the hex value is two characters (padding with '0' if necessary)
-                if len(hex_value) == 1:
-                    hex_value = '0' + hex_value
-
-                # Append the hex value to the current round_key column
-                round_key[row].append(hex_value)
-        
         return round_key
 
     def key_schedule(self):
-        """
-        Implements the AES key schedule to generate 10 round keys.
-        """
+
+
         current_key = self.hex_to_matrix(self.initial_key)
         self.round_keys.append(current_key)
 
-        # Loop over 10 rounds
         for round_number in range(10):
-            # Initialize an empty list for the round constant
-            round_constant = []
-            
-            # Loop through the 4 elements of the round constant
-            for i in range(4):
-                # Extract the value from RCON and convert it to a two-character hex string
-                rcon_value = self.RCON[round_number][i]
-                hex_value = hex(rcon_value)[2:]  # Convert to hex and remove '0x'
-                
-                # Ensure the hex string is two characters long
-                if len(hex_value) == 1:
-                    hex_value = '0' + hex_value
-                
-                # Append to the round constant list
-                round_constant.append(hex_value)
-            
-            # Generate the new round key
+            round_constant = self.RCON[round_number]
             current_key = self.generate_round_key(current_key, round_constant)
-            
-            # Append the generated key to the list of round keys
             self.round_keys.append(current_key)
-        
 
     def get_round_key(self, round_number: int) -> str:
-        """
-        Retrieve the key for a specific round.
 
-        Args:
-            round_number (int): The round number (0 to 10).
-
-        Returns:
-            str: The round key as a hexadecimal string.
-        """
         if round_number < 0 or round_number > 10:
             raise ValueError("Invalid round number. Must be between 0 and 10.")
-        
-        matrix = self.round_keys[round_number]
-        return ''.join(''.join(row) for row in matrix)
+        key_matrix = self.round_keys[round_number]
+        return ''.join(f"{byte:02x}" for byte in key_matrix.T.flatten())
