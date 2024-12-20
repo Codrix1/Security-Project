@@ -19,6 +19,21 @@ const Cryption: React.FC<CryptionProps> = ({ operation }) => {
       setErrorMessage(""); // Clear error message when valid
     }
     if (/^(.)\1{1,}$/.test(key)) setErrorMessage("This is a weak key");
+    if (type == "String") {
+      if (text.length != 16) {
+        setErrorMessage("Text must be 16 characters long");
+      }
+    }
+    if (type == "Hexadecimal") {
+      if (text.length != 32) {
+        setErrorMessage("Text must be 32 characters long");
+      }
+    }
+    if (type == "Binary") {
+      if (text.length != 128) {
+        setErrorMessage("Text must be 128 bits long");
+      }
+    }
   }, [text, key]);
   // Function to send POST request to the server
   const handleSubmit = async () => {
