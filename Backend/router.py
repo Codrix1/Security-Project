@@ -5,7 +5,8 @@ from AES import AES
 import numpy as np
 
 app = Flask(__name__)
-CORS(app)
+cors = CORS(app) # allow CORS for all domains on all routes.
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 
@@ -25,10 +26,10 @@ def handle_submit(type):
         Key = data.get("key")
         #input_type= data.get("base")
         print(f"text: {Text}, Key: {Key}")
-        if type =="encryption":
+        if type =="Encryption":
 
-            key_instance = KEY(Text)
-            aes = AES(Key)
+            key_instance = KEY(Key)
+            aes = AES(Text)
             ciphertext = aes.encrypt_block(key_instance)
             Steps =  aes.Steps 
 

@@ -5,6 +5,7 @@ interface CryptionProps {
 const Cryption: React.FC<CryptionProps> = ({ operation }) => {
   // States for input fields
   const [text, settext] = useState<string>("");
+  const [type, setType] = useState("String");
   const [key, setkey] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [responseMessage, setResponseMessage] = useState<string>("");
@@ -12,29 +13,40 @@ const Cryption: React.FC<CryptionProps> = ({ operation }) => {
   const regexPattern = /^[a-zA-Z0-9]*$/;
   // useEffect to validate fields whenever inputs change
   useEffect(() => {
-    if (!regexPattern.test(text)) {
-      setErrorMessage("Text contains invalid characters.");
-    } else if (!regexPattern.test(key)) {
+    if (!regexPattern.test(key)) {
       setErrorMessage("Key contains invalid characters.");
     } else {
       setErrorMessage(""); // Clear error message when valid
     }
+    if (/^(.)\1{1,}$/.test(key)) setErrorMessage("This is a weak key");
   }, [text, key]);
   // Function to send POST request to the server
   const handleSubmit = async () => {
     if (errorMessage) return; // Prevent submission if validation fails
     try {
-      const response = await fetch(`https://example.com/api/${operation}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      let formText = text;
+      if (type == "String") {
+        formText = text.split("")
+          .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
+          .join("");
+      }
+      if (type == "Binary") {
+        formText = parseInt(text, 2).toString(16);
+      }
+      const response = await fetch(
+        `http://localhost:5000/submit/${operation}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            operation: operation,
+            text: formText,
+            key: key,
+          }),
         },
-        body: JSON.stringify({
-          operation: operation,
-          text: text,
-          key: key,
-        }),
-      });
+      );
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
@@ -66,16 +78,19 @@ const Cryption: React.FC<CryptionProps> = ({ operation }) => {
             type="text"
             placeholder="Key"
             value={key}
+            maxLength={32}
+            minLength={32}
             onChange={(e) => setkey(e.target.value)}
             className="p-2 bg-transparent border border-green-600 text-green-400 placeholder-green-500 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-          <label
-            className="p-2 bg-transparent border border-green-600 text-green-400 placeholder-green-500 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
+          <label className="p-2 bg-transparent border border-green-600 text-green-400 placeholder-green-500 rounded focus:outline-none focus:ring-2 focus:ring-green-500">
             Text Type:
             <select
               name="text-type"
               className="mx-2"
+              onChange={(e) => {
+                setType(e.target.value);
+              }}
             >
               <option>String</option>
               <option>Hexadecimal</option>
