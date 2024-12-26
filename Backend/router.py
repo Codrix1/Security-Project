@@ -29,11 +29,12 @@ def handle_submit(type):
         if type =="Encryption":
 
             key_instance = KEY(Key)
-            aes = AES(Text)
+            aes = AES(Text , "")
             ciphertext = aes.encrypt_block(key_instance)
             Steps =  aes.Steps 
-
-        return jsonify(ciphertext , Steps ), 200
+        print("Data Sent") 
+        print(Steps)
+        return jsonify({"ciphertext": ciphertext, "Steps": Steps}), 200
     except Exception as e:
         app.logger.error("Error processing request: %s", str(e))
         return jsonify({"error": str(e)}), 500

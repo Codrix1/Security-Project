@@ -7,7 +7,7 @@ plaintext = "3243f6a8885a308d313198a2e0370734"  # Example plaintext block
 initial_key = "2b7e151628aed2a6abf7158809cf4f3c"  # Example 128-bit key
 
 key_instance = KEY(initial_key)
-aes = AES(plaintext)
+aes = AES(plaintext , "")
 ciphertext = aes.encrypt_block(key_instance)
 
 print("Ciphertext:", ciphertext)
@@ -52,7 +52,7 @@ for round_number in range(1, 11):
     print("\nAfter AddRoundKey:")
     print(aes.Steps[round_number][-1])  # AddRoundKey step
     print()
-
+ 
 # Final ciphertext
 print("Final Ciphertext State:")
 print(aes.Steps[10][-1])  # Final AddRoundKey step in round 10
