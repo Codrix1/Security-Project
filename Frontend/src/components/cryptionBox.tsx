@@ -22,15 +22,7 @@
         setErrorMessage(""); // Clear error message when valid
       }
       if (/^(.)\1{1,}$/.test(key)) setErrorMessage("This is a weak key");
-      if (type === "String" && text.length !== 16) {
-        setErrorMessage("Text must be 16 characters long");
-      }
-      if (type === "Hexadecimal" && text.length !== 32) {
-        setErrorMessage("Text must be 32 characters long");
-      }
-      if (type === "Binary" && text.length !== 128) {
-        setErrorMessage("Text must be 128 bits long");
-      }
+      if (key.length != 32) setErrorMessage("Key has to be 32 hexadecimal characters")
     }, [text, key]);
 
     const formatState = (state: (string)[][]): string => {
@@ -133,7 +125,7 @@
           )}
           {responseMessage && (
             <div className="mt-4 text-center text-green-400 font-semibold">
-             Encryption Result =  {responseMessage}
+             {operation} Result =  {responseMessage}
             </div>
           )}
           {/* Table to Display Steps */}
@@ -154,7 +146,14 @@
                             </span>
                           ))
                       ) : (
-                        `Round ${i + 1}`
+                        ["ShiftRows","SubBytes", "Add RoundKey","Round Key","Mix Columns"][i]
+                          .split(" ")
+                          .map((line, index) => (
+                            <span key={`line-${index}`}>
+                              {line}
+                              <br />
+                            </span>
+                          ))
                       )}
                     </th>
                   ))}
