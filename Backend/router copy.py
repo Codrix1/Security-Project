@@ -24,29 +24,21 @@ def handle_submit(type):
             return jsonify({"error": "Invalid or missing JSON payload."}), 400
         
         Text = data.get("text")
-        print(Text)
         Key = data.get("key")
         #input_type= data.get("base")
         print(f"text: {Text}, Key: {Key}")
         if type =="Encryption":
 
-            ciphertext = ""
             key_instance = KEY(Key)
-            ciphertext_chunk = ""
-            for chunk in validate_plaintext(Text):
-                aes = AES(chunk , "")
-                ciphertext_chunk = aes.encrypt_block(key_instance)
-                ciphertext += ciphertext_chunk
-                Steps =  aes.Steps
+            aes = AES(Text , "")
+            ciphertext = aes.encrypt_block(key_instance)
+            Steps =  aes.Steps 
+
         elif type =="Decryption":
-            ciphertext = ""
             key_instance = KEY(Key)
-            ciphertext_chunk = ""
-            for chunk in validate_plaintext(Text):
-                aes = AES("",chunk) 
-                ciphertext_chunk = aes.decrypt_block(key_instance)
-                ciphertext += ciphertext_chunk
-                Steps =  aes.Steps
+            aes = AES("",Text)
+            ciphertext = aes.decrypt_block(key_instance)
+            Steps =  aes.Steps 
             
         print("Data Sent") 
         print(Steps)

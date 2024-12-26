@@ -232,8 +232,11 @@ class AES:
         # Initial round key addition (start from the last round key for decryption)
         state = self.add_round_key(state, round_keys[10])
         temp = []
-        temp.append(self.format_state_as_hex_list(state.copy()))
+        temp.append([['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']])
+        temp.append([['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']])
+        temp.append([['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']])
         temp.append(self.format_state_as_hex_list(round_keys[10].copy()))
+        temp.append([['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']])
         self.Steps.append(temp)
 
         # Main rounds in reverse order
@@ -266,7 +269,9 @@ class AES:
         temp.append(self.format_state_as_hex_list(state.copy()))
 
         state = self.add_round_key(state, round_keys[0])  # Final AddRoundKey
+        temp.append(self.format_state_as_hex_list(state.copy()))
         temp.append(self.format_state_as_hex_list(round_keys[0].copy()))
+        temp.append([['', '', '', ''], ['', '', '', ''], ['', '', '', ''], ['', '', '', '']])
         self.Steps.append(temp)
 
         # Convert state matrix back to hex
